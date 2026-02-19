@@ -1,0 +1,12 @@
+--- a/lisp/emacs-lisp/derived.el
++++ b/lisp/emacs-lisp/derived.el
+@@ -177,8 +177,7 @@
+   (declare (debug (&define name symbolp sexp [&optional stringp]
+ 			   [&rest keywordp sexp] def-body))
+ 	   (doc-string 4)
+-	   (indent defun)
+-	   (autoload-macro expand))
++	   (indent defun))
+ 
+   (when (and docstring (not (stringp docstring)))
+     ;; Some trickiness, since what appears to be the docstring may really be

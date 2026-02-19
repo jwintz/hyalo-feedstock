@@ -1,0 +1,17 @@
+diff --git a/admin/unidata/unidata-gen.el b/admin/unidata/unidata-gen.el
+index ac3328787f0..01fb417728c 100644
+--- a/admin/unidata/unidata-gen.el
++++ b/admin/unidata/unidata-gen.el
+@@ -1004,7 +1004,11 @@ unidata-gen-table-word-list
+ 	      (dotimes (i (length vec))
+ 		(dolist (elt (aref vec i))
+ 		  (if (symbolp elt)
+-                      (incf (alist-get elt (cdr word-list) 0)))))
++                      (let* ((alist (cdr word-list))
++                             (slot (assoc elt alist)))
++                        (if slot
++                            (setcdr slot (1+ (cdr slot)))
++                          (setcdr word-list (cons (cons elt 1) alist)))))))
+ 	      (set-char-table-range table (cons start limit) vec))))))
+     (setq word-list (sort (cdr word-list)
+ 			  #'(lambda (x y) (> (cdr x) (cdr y)))))

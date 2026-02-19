@@ -1,0 +1,113 @@
+[project]
+name = "emacs"
+version = "HEAD"
+description = "GNU Emacs"
+channels = ["https://repo.prefix.dev/jwintz", "conda-forge"]
+platforms = ["osx-arm64"]
+
+[dependencies]
+# Build tools
+autoconf = "*"
+automake = "*"
+make = "*"
+pkg-config = "*"
+texinfo = "*"
+
+# Required libraries
+gnutls = "*"
+libxml2 = "*"
+ncurses = "*"
+zlib = "*"
+
+# Image libraries
+giflib = "*"
+libjpeg-turbo = "*"
+libpng = "*"
+libtiff = "*"
+lcms2 = "*"
+
+# SVG support (requires cairo and glib stack)
+librsvg = "*"
+cairo = "*"
+glib = "*"
+gdk-pixbuf = "*"
+pango = "*"
+expat = "*"
+
+# JSON support
+jansson = "*"
+
+# Tree-sitter support (incremental parsing for syntax highlighting, indentation)
+libtree-sitter = ">=0.20.10"
+
+# Native compilation (Emacs Lisp to native machine code via libgccjit)
+libgccjit = ">=15.2.0"
+
+[tasks]
+# Apply patches to emacs submodule (only runs if .patched is missing)
+patch = { cwd = "emacs", cmd = """
+git checkout . && \
+patch -p1 < ../patches/system-appearance.patch && \
+patch -p1 < ../patches/frame-transparency.patch && \
+patch -p1 < ../patches/unidata-gen-incf.patch && \
+patch -p1 < ../patches/loaddefs-gen-fix.patch && \
+patch -p1 < ../patches/derived-fix.patch && \
+cp ../icons/Emacs.icns nextstep/Cocoa/Emacs.base/Contents/Resources/Emacs.icns && \
+touch .patched && \
+echo 'Patches applied successfully.'
+""", outputs = [".patched"], description = "Apply patches to emacs submodule" }
+
+# Revert patches by restoring emacs submodule to clean state
+unpatch = { cwd = "emacs", cmd = "git checkout . && rm -f .patched", description = "Revert all patches in emacs submodule" }
+
+# Generate configure script from configure.ac
+autogen = { cwd = "emacs", cmd = "./autogen.sh", depends-on = ["patch"], inputs = ["configure.ac"], outputs = ["configure"], description = "Generate configure script" }
+
+# Configure for macOS with NS support
+configure = { cwd = "emacs", cmd = """
+./configure \
+  --with-ns \
+  --with-gnutls \
+  --with-json \
+  --with-xml2 \
+  --with-rsvg \
+  --with-modules \
+  --with-tree-sitter \
+  --with-native-compilation=aot \
+  --without-x \
+  --without-dbus \
+  CC=clang \
+  OBJC=clang \
+  CFLAGS=\"-O2 -g -I$CONDA_PREFIX/include\" \
+  LDFLAGS=\"-Wl,-rpath,$CONDA_PREFIX/lib -L$CONDA_PREFIX/lib\" \
+  PKG_CONFIG_PATH=\"$CONDA_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH\" \
+  RSVG_CFLAGS=\"-I$CONDA_PREFIX/include/librsvg-2.0 -I$CONDA_PREFIX/include/gdk-pixbuf-2.0 -I$CONDA_PREFIX/include/cairo -I$CONDA_PREFIX/include/glib-2.0 -I$CONDA_PREFIX/lib/glib-2.0/include\" \
+  RSVG_LIBS=\"-L$CONDA_PREFIX/lib -lrsvg-2 -lm -lgdk_pixbuf-2.0 -lcairo -lgio-2.0 -lgobject-2.0 -lglib-2.0\"
+""", depends-on = ["autogen"], inputs = ["configure"], outputs = ["config.status"], description = "Configure Emacs with NS support" }
+
+# Build Emacs
+build = { cwd = "emacs", cmd = "make -j$(sysctl -n hw.ncpu)", depends-on = ["configure"], description = "Build Emacs" }
+
+# Update loaddefs.el (useful if build fails with void function errors)
+autoloads = { cwd = "emacs/lisp", cmd = "make autoloads", depends-on = ["configure"], description = "Update loaddefs.el" }
+
+# Bootstrap Emacs (full rebuild, recommended if build fails)
+bootstrap = { cwd = "emacs", cmd = "make bootstrap -j$(sysctl -n hw.ncpu)", depends-on = ["configure"], description = "Bootstrap Emacs" }
+
+# Install into nextstep directory
+install = { cwd = "emacs", cmd = "make install && codesign --force --deep --sign - ./nextstep/Emacs.app", depends-on = ["build"], outputs = ["nextstep/Emacs.app/Contents/MacOS/Emacs"], description = "Install Emacs.app and sign" }
+
+# Run the built Emacs
+run = { cwd = "emacs", cmd = "./nextstep/Emacs.app/Contents/MacOS/Emacs", depends-on = ["install"], description = "Run Emacs.app" }
+
+# Clean build artifacts
+clean = { cwd = "emacs", cmd = "make clean", description = "Clean build artifacts" }
+
+# Deep clean including configure output and patches
+distclean = { cwd = "emacs", cmd = "make distclean 2>/dev/null || true && git checkout . && rm -f .patched lib/gmp.h", description = "Deep clean" }
+
+# Run the test suite
+check = { cwd = "emacs", cmd = "make check", depends-on = ["build"], description = "Run Emacs test suite" }
+
+[environments]
+default = { features = [], solve-group = "default" }

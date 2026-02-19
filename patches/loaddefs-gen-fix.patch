@@ -1,0 +1,75 @@
+--- a/lisp/emacs-lisp/loaddefs-gen.el	2026-02-11 15:24:48
++++ lisp/emacs-lisp/loaddefs-gen.el	2026-02-11 15:25:19
+@@ -158,7 +158,11 @@
+      transient-define-argument
+      ;; FIXME: How can this one make sense?  It doesn't put anything
+      ;; into `symbol-function'!
+-     transient-define-group))
++     transient-define-group
++     cl-defun cl-defmacro cl-defsubst cl-defgeneric cl-defmethod
++     define-derived-mode define-minor-mode define-globalized-minor-mode
++     define-generic-mode define-compilation-mode
++     cl-iter-defun cl-iter-defmacro))
+ 
+ (defvar loaddefs--load-error-files nil)
+ (defun loaddefs-generate--make-autoload (form file &optional expansion)
+@@ -172,6 +176,37 @@
+ expand)' among their `declare' forms."
+   (let ((car (car-safe form)) expand)
+     (cond
++     ;; For known special macros which define functions, use `autoload'
++     ;; directly.
++     ((memq car loaddefs--defining-macros)
++      (let* ((name (nth 1 form))
++	     (args (pcase car
++                     ((or 'transient-define-prefix 'transient-define-suffix
++                          'transient-define-infix 'transient-define-argument
++                          'transient-define-group)
++                      (nth 2 form))
++                     (_ t)))
++	     (body (nthcdr (or (function-get car 'doc-string-elt) 3) form))
++	     (doc (if (stringp (car body)) (pop body))))
++        ;; Add the usage form at the end where describe-function-1
++        ;; can recover it.
++	(when (listp args) (setq doc (help-add-fundoc-usage doc args)))
++        ;; `define-generic-mode' quotes the name, so take care of that
++        (loaddefs-generate--shorten-autoload
++         `(autoload ,(if (listp name) name (list 'quote name))
++            ,file ,doc
++            ,(or (and (memq car '( transient-define-prefix
++                                   transient-define-suffix
++                                   transient-define-infix
++                                   transient-define-argument
++                                   transient-define-group))
++                      t)
++                 (and (eq (car-safe (car body)) 'interactive)
++                      ;; List of modes or just t.
++                      (or (if (nthcdr 2 (car body))
++                              (list 'quote (nthcdr 2 (car body)))
++                            t))))))))
++
+      ((and expansion (eq car 'defalias))
+       (pcase-let*
+           ((`(,_ ,_ ,arg . ,rest) form)
+@@ -248,21 +283,6 @@
+       ;; Recurse on the expansion.
+       (loaddefs-generate--make-autoload expand file 'expansion))
+ 
+-     ;; For known special macros which define functions, use `autoload'
+-     ;; directly.
+-     ((memq car loaddefs--defining-macros)
+-      (let* ((name (nth 1 form))
+-	     (args (nth 2 form))
+-	     (body (nthcdr (or (function-get car 'doc-string-elt) 3) form))
+-	     (doc (if (stringp (car body)) (pop body))))
+-        ;; Add the usage form at the end where describe-function-1
+-        ;; can recover it.
+-	(when (listp args) (setq doc (help-add-fundoc-usage doc args)))
+-        ;; `define-generic-mode' quotes the name, so take care of that
+-        (loaddefs-generate--shorten-autoload
+-         `(autoload ,(if (listp name) name (list 'quote name))
+-            ,file ,doc t))))
+-
+      ;; For defclass forms, use `eieio-defclass-autoload'.
+      ((eq car 'defclass)
+       (let ((name (nth 1 form))
