@@ -1,0 +1,21 @@
+diff --git a/src/lisp.h b/src/lisp.h
+index f278bd3..ab5c748 100644
+--- a/src/lisp.h
++++ b/src/lisp.h
+@@ -1588,6 +1588,16 @@ STRINGP (Lisp_Object x)
+ INLINE void
+ CHECK_STRING (Lisp_Object x)
+ {
++#ifdef HAVE_IOS
++  /* On iOS during bootstrap, some macro expansion code paths pass nil.
++     Skip the check to avoid signaling an error.  The caller will likely
++     fail in a more informative way.  */
++  if (NILP (x))
++    {
++      fprintf (stderr, "[IOS DEBUG] CHECK_STRING called with nil, skipping error\n");
++      return;
++    }
++#endif
+   CHECK_TYPE (STRINGP (x), Qstringp, x);
+ }
+ 

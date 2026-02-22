@@ -1,0 +1,57 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -570,6 +570,9 @@
+ AC_ARG_WITH([ns],[AS_HELP_STRING([--with-ns],
+ [use Nextstep (macOS Cocoa or GNUstep) windowing system.
+ On by default on macOS.])],[],[with_ns=maybe])
++AC_ARG_WITH([ios],[AS_HELP_STRING([--with-ios],
++[use iOS/UIKit windowing system for iOS/iPadOS.
++For cross-compilation to iOS devices/simulators.])],[],[with_ios=no])
+ OPTION_DEFAULT_OFF([w32], [use native MS Windows GUI in a Cygwin build])
+ OPTION_DEFAULT_OFF([pgtk], [use GTK to support window systems other than X])
+ 
+@@ -2684,6 +2687,34 @@
+ AC_SUBST([ANDROID_BUILD_CFLAGS])
+ AC_SUBST([ANDROID_SHARED_USER_ID])
+ AC_SUBST([ANDROID_SHARED_USER_NAME])
++
++# iOS/iPadOS support
++IOS_OBJ=
++IOS_OBJC_OBJ=
++IOS_LIBS=
++HAVE_IOS=no
++
++AS_IF([test "$with_ios" = "yes"],[
++  HAVE_IOS=yes
++  window_system=ios
++  no_x=yes
++  with_ns=no
++
++  IOS_OBJ="ios-termstubs.o"
++  IOS_OBJC_OBJ="iosterm.o iosfns.o macfont.o"
++  IOS_LIBS="-framework UIKit -framework CoreGraphics -framework CoreText -framework QuartzCore -framework Foundation"
++  CM_OBJ=
++
++  AC_DEFINE([HAVE_IOS], [1], [Define to 1 if using iOS/UIKit window system.])
++  AC_DEFINE([HAVE_EXT_MENU_BAR], [1], [Define to 1 if menu bar is external.])
++  AC_MSG_NOTICE([Configuring for iOS/UIKit window system])
++])
++
++AM_CONDITIONAL([HAVE_IOS], [test "$HAVE_IOS" = "yes"])
++AC_SUBST([HAVE_IOS])
++AC_SUBST([IOS_OBJ])
++AC_SUBST([IOS_OBJC_OBJ])
++AC_SUBST([IOS_LIBS])
+ 
+ # Check for pw_gecos in struct passwd; this is known to be missing on
+ # Android.
+@@ -3201,6 +3232,9 @@
+   android )
+     term_header=androidterm.h
+   ;;
++  ios )
++    term_header=iosterm.h
++  ;;
+ esac
+ 
+ AC_SUBST([HAVE_PGTK])

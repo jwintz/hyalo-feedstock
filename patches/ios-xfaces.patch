@@ -1,0 +1,40 @@
+diff --git a/src/xfaces.c b/src/xfaces.c
+index 2e063fc..62a5f84 100644
+--- a/src/xfaces.c
++++ b/src/xfaces.c
+@@ -258,6 +258,10 @@ #define GCGraphicsExposures 0
+ #ifdef HAVE_ANDROID
+ #define GCGraphicsExposures 0
+ #endif /* HAVE_ANDROID */
++
++#ifdef HAVE_IOS
++#define GCGraphicsExposures 0
++#endif /* HAVE_IOS */
+ #endif /* HAVE_WINDOW_SYSTEM */
+ 
+ #include "buffer.h"
+@@ -591,6 +595,24 @@ x_free_gc (struct frame *f, Emacs_GC *gc)
+ }
+ #endif  /* HAVE_NS */
+ 
++#ifdef HAVE_IOS
++/* iOS emulation of GCs */
++
++static Emacs_GC *
++x_create_gc (struct frame *f, unsigned long mask, Emacs_GC *egc)
++{
++  Emacs_GC *gc = xmalloc (sizeof *gc);
++  *gc = *egc;
++  return gc;
++}
++
++static void
++x_free_gc (struct frame *f, Emacs_GC *gc)
++{
++  xfree (gc);
++}
++#endif  /* HAVE_IOS */
++
+ #ifdef HAVE_PGTK
+ /* PGTK emulation of GCs */
+ 

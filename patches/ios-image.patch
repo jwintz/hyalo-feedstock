@@ -1,0 +1,93 @@
+diff --git a/src/image.c b/src/image.c
+index c5caaf7..09f0588 100644
+--- a/src/image.c
++++ b/src/image.c
+@@ -147,6 +147,18 @@ #define PIX_MASK_DRAW	1
+ 
+ #endif /* HAVE_NS */
+ 
++#ifdef HAVE_IOS
++typedef struct ios_bitmap_record Bitmap_Record;
++
++#define GET_PIXEL(ximg, x, y) XGetPixel (ximg, x, y)
++#define PUT_PIXEL XPutPixel
++#define NO_PIXMAP 0
++
++#define PIX_MASK_RETAIN	0
++#define PIX_MASK_DRAW	1
++
++#endif /* HAVE_IOS */
++
+ #ifdef HAVE_PGTK
+ typedef struct pgtk_bitmap_record Bitmap_Record;
+ #endif /* HAVE_PGTK */
+@@ -371,6 +383,22 @@ XPutPixel (Emacs_Pix_Container image, int x, int y, unsigned long pixel)
+ }
+ #endif /* HAVE_NS */
+ 
++#ifdef HAVE_IOS
++/* Stub implementations for iOS - full image support TBD.  */
++static unsigned long
++XGetPixel (Emacs_Pix_Container image, int x, int y)
++{
++  /* TODO: Implement iOS pixel access via Core Graphics.  */
++  return 0;
++}
++
++static void
++XPutPixel (Emacs_Pix_Container image, int x, int y, unsigned long pixel)
++{
++  /* TODO: Implement iOS pixel write via Core Graphics.  */
++}
++#endif /* HAVE_IOS */
++
+ /* Code to deal with bitmaps.  Bitmaps are referenced by their bitmap
+    id, which is just an int that this section returns.  Bitmaps are
+    reference counted so they can be shared among frames.
+@@ -6930,8 +6958,8 @@ image_to_emacs_colors (struct frame *f, struct image *img, bool rgb_p)
+   p = colors;
+   for (y = 0; y < img->height; ++y)
+     {
+-#if !defined USE_CAIRO && !defined HAVE_NS && !defined HAVE_HAIKU	\
+-  && !defined HAVE_ANDROID
++#if !defined USE_CAIRO && !defined HAVE_NS && !defined HAVE_IOS	\
++  && !defined HAVE_HAIKU && !defined HAVE_ANDROID
+       Emacs_Color *row = p;
+       for (x = 0; x < img->width; ++x, ++p)
+ 	p->pixel = GET_PIXEL (ximg, x, y);
+@@ -6939,7 +6967,7 @@ image_to_emacs_colors (struct frame *f, struct image *img, bool rgb_p)
+         {
+           FRAME_TERMINAL (f)->query_colors (f, row, img->width);
+         }
+-#else  /* USE_CAIRO || HAVE_NS || HAVE_HAIKU || HAVE_ANDROID */
++#else  /* USE_CAIRO || HAVE_NS || HAVE_IOS || HAVE_HAIKU || HAVE_ANDROID */
+       for (x = 0; x < img->width; ++x, ++p)
+ 	{
+ 	  p->pixel = GET_PIXEL (ximg, x, y);
+@@ -6950,7 +6978,7 @@ image_to_emacs_colors (struct frame *f, struct image *img, bool rgb_p)
+ 	      p->blue = BLUE16_FROM_ULONG (p->pixel);
+ 	    }
+ 	}
+-#endif	/* USE_CAIRO || HAVE_NS || HAVE_ANDROID */
++#endif	/* USE_CAIRO || HAVE_NS || HAVE_IOS || HAVE_ANDROID */
+     }
+ 
+   image_unget_x_image_or_dc (img, 0, ximg, prev);
+@@ -7275,7 +7303,7 @@ image_disable_image (struct frame *f, struct image *img)
+   if (n_planes < 2 || cross_disabled_images)
+     {
+ #ifndef HAVE_NTGUI
+-#ifndef HAVE_NS  /* TODO: NS support, however this not needed for toolbars */
++#if !defined HAVE_NS && !defined HAVE_IOS  /* TODO: NS/iOS support */
+ 
+ #if !defined USE_CAIRO && !defined HAVE_HAIKU && !defined HAVE_ANDROID
+ #define CrossForeground(f) BLACK_PIX_DEFAULT (f)
+@@ -7293,7 +7321,7 @@ #define MaskForeground(f)  PIX_MASK_DRAW
+       if (img->mask)
+ 	image_pixmap_draw_cross (f, img->mask, 0, 0, img->width, img->height,
+ 				 MaskForeground (f));
+-#endif /* !HAVE_NS */
++#endif /* !HAVE_NS && !HAVE_IOS */
+ #else
+       HDC hdc, bmpdc;
+       HGDIOBJ prev;

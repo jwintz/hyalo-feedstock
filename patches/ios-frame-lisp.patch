@@ -1,0 +1,110 @@
+--- a/lisp/frame.el	2026-01-15 22:03:23
++++ b/lisp/frame.el	2026-01-15 22:03:37
+@@ -2581,7 +2581,7 @@
+ DISPLAY can be a display name, a frame, or nil (meaning the selected
+ frame's display)."
+   (not (null (memq (framep-on-display display) '(x w32 ns pgtk haiku
+-                                                   android)))))
++                                                   android ios)))))
+ 
+ (defun display-images-p (&optional display)
+   "Return non-nil if DISPLAY can display images.
+@@ -2633,7 +2633,7 @@
+ This means that, for example, DISPLAY can differentiate between
+ the keybinding RET and [return]."
+   (let ((frame-type (framep-on-display display)))
+-    (or (memq frame-type '(x w32 ns pc pgtk haiku android))
++    (or (memq frame-type '(x w32 ns pc pgtk haiku android ios))
+         ;; MS-DOS and MS-Windows terminals have built-in support for
+         ;; function (symbol) keys
+         (memq system-type '(ms-dos windows-nt)))))
+@@ -2646,7 +2646,7 @@
+ If DISPLAY is omitted or nil, it defaults to the selected frame's display."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-screens display))
+      (t
+       1))))
+@@ -2667,7 +2667,7 @@
+ `display-monitor-attributes-list'."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-pixel-height display))
+      (t
+       (tty-display-pixel-height display)))))
+@@ -2688,7 +2688,7 @@
+ `display-monitor-attributes-list'."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-pixel-width display))
+      (t
+       (tty-display-pixel-width display)))))
+@@ -2726,7 +2726,7 @@
+ refers to the height in millimeters for all physical monitors
+ associated with DISPLAY.  To get information for each physical
+ monitor, use `display-monitor-attributes-list'."
+-  (and (memq (framep-on-display display) '(x w32 ns haiku pgtk android))
++  (and (memq (framep-on-display display) '(x w32 ns haiku pgtk android ios))
+        (or (cddr (assoc (or display (frame-parameter nil 'display))
+ 			display-mm-dimensions-alist))
+ 	   (cddr (assoc t display-mm-dimensions-alist))
+@@ -2747,7 +2747,7 @@
+ refers to the width in millimeters for all physical monitors
+ associated with DISPLAY.  To get information for each physical
+ monitor, use `display-monitor-attributes-list'."
+-  (and (memq (framep-on-display display) '(x w32 ns haiku pgtk android))
++  (and (memq (framep-on-display display) '(x w32 ns haiku pgtk android ios))
+        (or (cadr (assoc (or display (frame-parameter nil 'display))
+ 			display-mm-dimensions-alist))
+ 	   (cadr (assoc t display-mm-dimensions-alist))
+@@ -2765,7 +2765,7 @@
+ If DISPLAY is omitted or nil, it defaults to the selected frame's display."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-backing-store display))
+      (t
+       'not-useful))))
+@@ -2778,7 +2778,7 @@
+ If DISPLAY is omitted or nil, it defaults to the selected frame's display."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-save-under display))
+      (t
+       'not-useful))))
+@@ -2791,7 +2791,7 @@
+ If DISPLAY is omitted or nil, it defaults to the selected frame's display."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-planes display))
+      ((eq frame-type 'pc)
+       4)
+@@ -2806,7 +2806,7 @@
+ If DISPLAY is omitted or nil, it defaults to the selected frame's display."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-color-cells display))
+      ((eq frame-type 'pc)
+       16)
+@@ -2823,7 +2823,7 @@
+ If DISPLAY is omitted or nil, it defaults to the selected frame's display."
+   (let ((frame-type (framep-on-display display)))
+     (cond
+-     ((memq frame-type '(x w32 ns haiku pgtk android))
++     ((memq frame-type '(x w32 ns haiku pgtk android ios))
+       (x-display-visual-class display))
+      ((and (memq frame-type '(pc t))
+ 	   (tty-display-color-p display))

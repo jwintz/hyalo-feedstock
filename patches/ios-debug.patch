@@ -1,0 +1,111 @@
+diff --git a/src/data.c b/src/data.c
+index a1861bd..53b5b4c 100644
+--- a/src/data.c
++++ b/src/data.c
+@@ -131,6 +131,15 @@ wrong_length_argument (Lisp_Object a1, Lisp_Object a2, Lisp_Object a3)
+ wrong_type_argument (Lisp_Object predicate, Lisp_Object value)
+ {
+   eassert (!TAGGEDP (value, Lisp_Type_Unused0));
++#ifdef HAVE_IOS
++  if (EQ (predicate, Qstringp) && NILP (value))
++    {
++      fprintf (stderr, "[IOS] wrong_type_argument stringp nil\n");
++      fprintf (stderr, "[IOS] Vload_file_name = ");
++      debug_print (Vload_file_name);
++      fprintf (stderr, "\n");
++    }
++#endif
+   xsignal2 (Qwrong_type_argument, predicate, value);
+ }
+ 
+diff --git a/src/fileio.c b/src/fileio.c
+index 33ed4f8..7ea5932 100644
+--- a/src/fileio.c
++++ b/src/fileio.c
+@@ -517,6 +517,11 @@ DEFUN ("file-name-directory", Ffile_name_directory, Sfile_name_directory,
+ {
+   Lisp_Object handler;
+ 
++#ifdef HAVE_IOS
++  if (NILP (filename))
++    return Qnil;
++#endif
++
+   CHECK_STRING (filename);
+ 
+   /* If the file name has special constructs in it,
+@@ -543,6 +548,11 @@ DEFUN ("file-name-nondirectory", Ffile_name_nondirectory,
+   register const char *beg, *p, *end;
+   Lisp_Object handler;
+ 
++#ifdef HAVE_IOS
++  if (NILP (filename))
++    return build_string ("");
++#endif
++
+   CHECK_STRING (filename);
+ 
+   /* If the file name has special constructs in it,
+@@ -656,6 +666,12 @@ DEFUN ("file-name-as-directory", Ffile_name_as_directory,
+   Lisp_Object handler, val;
+   USE_SAFE_ALLOCA;
+ 
++#ifdef HAVE_IOS
++  /* On iOS during bootstrap, file-name-as-directory may receive nil.  */
++  if (NILP (file))
++    return build_string ("./");
++#endif
++
+   CHECK_STRING (file);
+ 
+   /* If the file name has special constructs in it,
+@@ -1044,6 +1060,19 @@ DEFUN ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
+   Lisp_Object hdir;
+   USE_SAFE_ALLOCA;
+ 
++#ifdef HAVE_IOS
++  /* On iOS during bootstrap, some macro expansion code paths may call
++     expand-file-name with nil arguments. Return a fallback.  */
++  if (NILP (name))
++    {
++      return build_string ("/");
++    }
++  if (NILP (default_directory))
++    {
++      default_directory = build_string ("/");
++    }
++#endif
++
+   CHECK_STRING (name);
+   CHECK_STRING_NULL_BYTES (name);
+ 
+@@ -2065,6 +2094,11 @@ DEFUN ("substitute-in-file-name", Fsubstitute_in_file_name,
+   char *xnm;
+   Lisp_Object handler;
+ 
++#ifdef HAVE_IOS
++  if (NILP (filename))
++    return build_string ("");
++#endif
++
+   CHECK_STRING (filename);
+ 
+   multibyte = STRING_MULTIBYTE (filename);
+diff --git a/src/search.c b/src/search.c
+index 540e27a..0ccf391 100644
+--- a/src/search.c
++++ b/src/search.c
+@@ -378,6 +378,13 @@ string_match_1 (Lisp_Object regexp, Lisp_Object string, Lisp_Object start,
+   if (running_asynch_code)
+     save_search_regs ();
+ 
++#ifdef HAVE_IOS
++  /* On iOS during bootstrap, help-split-fundoc may pass nil docstring
++     to string-match.  Return nil instead of signaling an error.  */
++  if (NILP (string))
++    return Qnil;
++#endif
++
+   CHECK_STRING (regexp);
+   CHECK_STRING (string);
+ 

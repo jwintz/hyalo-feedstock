@@ -1,0 +1,35 @@
+diff --git a/src/font.c b/src/font.c
+index fb45839..f920a28 100644
+--- a/src/font.c
++++ b/src/font.c
+@@ -239,7 +239,7 @@ font_make_object (int size, Lisp_Object entity, int pixelsize)
+   return font_object;
+ }
+ 
+-#if defined (HAVE_XFT) || defined (HAVE_FREETYPE) || defined (HAVE_NS)
++#if defined (HAVE_XFT) || defined (HAVE_FREETYPE) || defined (HAVE_NS) || defined (HAVE_IOS)
+ 
+ static int font_unparse_fcname (Lisp_Object, int, char *, int);
+ 
+@@ -1871,7 +1871,7 @@ #define PROP_SAVE(VAR, STR)					\
+   return 0;
+ }
+ 
+-#if defined HAVE_XFT || defined HAVE_FREETYPE || defined HAVE_NS
++#if defined HAVE_XFT || defined HAVE_FREETYPE || defined HAVE_NS || defined HAVE_IOS
+ 
+ /* Store fontconfig's font name of FONT (font-spec or font-entity) in
+    NAME (NBYTES length), and return the name length.  If
+diff --git a/src/font.h b/src/font.h
+index 402980e..a531122 100644
+--- a/src/font.h
++++ b/src/font.h
+@@ -844,7 +844,7 @@ #define FONT_INVALID_CODE 0xFFFFFFFF
+ extern Lisp_Object font_make_entity_android (int);
+ #endif
+ extern Lisp_Object font_make_object (int, Lisp_Object, int);
+-#if defined (HAVE_XFT) || defined (HAVE_FREETYPE) || defined (HAVE_NS)
++#if defined (HAVE_XFT) || defined (HAVE_FREETYPE) || defined (HAVE_NS) || defined (HAVE_IOS)
+ extern Lisp_Object font_build_object (int, Lisp_Object, Lisp_Object, double);
+ #endif
+ 

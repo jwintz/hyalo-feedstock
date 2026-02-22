@@ -1,0 +1,20 @@
+diff --git a/src/dispnew.c b/src/dispnew.c
+index d7833fe..77f8e52 100644
+--- a/src/dispnew.c
++++ b/src/dispnew.c
+@@ -7298,6 +7298,15 @@ init_display_interactive (void)
+     }
+ #endif
+ 
++#ifdef HAVE_IOS
++  if (!inhibit_window_system && ios_init_gui)
++    {
++      Vinitial_window_system = Qios;
++      ios_term_init ();
++      return;
++    }
++#endif
++
+ #ifdef HAVE_PGTK
+   if (!inhibit_window_system && !will_dump_p ())
+     {

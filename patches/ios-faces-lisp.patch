@@ -1,0 +1,11 @@
+--- a/lisp/faces.el	2026-01-15 22:04:18
++++ b/lisp/faces.el	2026-01-15 22:04:18
+@@ -2954,7 +2954,7 @@
+     (((type haiku))
+      :foreground "B_MENU_ITEM_TEXT_COLOR"
+      :background "B_MENU_BACKGROUND_COLOR")
+-    (((type x w32 ns pgtk android) (class color))
++    (((type x w32 ns pgtk android ios) (class color))
+      :background "grey75")
+     (((type x) (class mono))
+      :background "grey"))

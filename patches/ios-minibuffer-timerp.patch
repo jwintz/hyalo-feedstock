@@ -1,0 +1,16 @@
+diff --git a/lisp/minibuffer.el b/lisp/minibuffer.el
+index abc1234..def5678 100644
+--- a/lisp/minibuffer.el
++++ b/lisp/minibuffer.el
+@@ -1051,7 +1051,9 @@ clear-minibuffer-message
+ (defun clear-minibuffer-message ()
+   "Clear message temporarily shown in the minibuffer.
+ Intended to be called via `clear-message-function'."
+   (when (not noninteractive)
+-    (when (timerp minibuffer-message-timer)
++    ;; Guard against timerp not being defined during early bootstrap
++    ;; (timer.el is loaded after minibuffer.el in loadup.el).
++    (when (and (fboundp 'timerp) (timerp minibuffer-message-timer))
+       (cancel-timer minibuffer-message-timer)
+       (setq minibuffer-message-timer nil))
+     (when (overlayp minibuffer-message-overlay)

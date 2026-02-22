@@ -1,1 +1,31 @@
+# Pixi environment
 .pixi
+
+# Build directories
+build-sim/
+build-device/
+
+# Compiled dependencies
+ios-sim-deps/
+ios-deps/
+
+# Native build tools
+native-tools/
+
+# iOS Resources (generated from Emacs build)
+ios/Resources/bootstrap-emacs.pdmp
+ios/Resources/temacs.data
+ios/Resources/lisp/
+ios/Resources/etc/
+ios/Resources/info/
+
+# Emacs build artifacts (in submodule)
+emacs/src/*.o
+emacs/src/*.a
+emacs/src/temacs
+emacs/src/bootstrap-emacs
+emacs/src/bootstrap-emacs.pdmp
+emacs/src/emacs
+emacs/src/emacs-*.pdmp
+emacs/lib/*.a
+emacs/lib-src/
