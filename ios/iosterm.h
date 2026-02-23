@@ -1145,6 +1145,12 @@ extern bool ios_next_event (union ios_event *event_return);
 extern void ios_wait_event (void);
 
 
+/* ==========================================================================
+   Single dispatch system header
+   ========================================================================== */
+
+#include "iosdispatch.h"
+
 #endif  /* HAVE_IOS */
 
 #endif  /* EMACS_IOSTERM_H */

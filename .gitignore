@@ -29,3 +29,7 @@ emacs/src/emacs
 emacs/src/emacs-*.pdmp
 emacs/lib/*.a
 emacs/lib-src/
+
+# Emacs dedicated build directories
+emacs-build-ios-sim/
+emacs-build-macos/

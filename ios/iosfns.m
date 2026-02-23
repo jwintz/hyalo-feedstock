@@ -36,6 +36,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 #include "fontset.h"
 #include "font.h"
 #include "macfont.h"
+#include "iosdispatch.h"
 
 #import <UIKit/UIKit.h>
 
@@ -43,6 +44,93 @@ extern NSString *ios_app_name;
 extern void ios_clear_frame (struct frame *f);
 
 static void ios_set_name (struct frame *, Lisp_Object, Lisp_Object);
+/* ==========================================================================
+   Single dispatch system implementation
+   ========================================================================== */
+
+ios_command_entry *ios_dispatch_table = NULL;
+int ios_dispatch_count = 0;
+int ios_dispatch_capacity = 0;
+
+void
+ios_dispatch_init(void)
+{
+  if (ios_dispatch_table == NULL) {
+    ios_dispatch_capacity = 32;
+    ios_dispatch_table = xzalloc(sizeof(ios_command_entry) * ios_dispatch_capacity);
+    ios_dispatch_count = 0;
+  }
+}
+
+void
+ios_dispatch_register(ios_command_id cmd_id, const char *name,
+                      ios_dispatch_handler handler,
+                      Lisp_Object (*elisp_func)(Lisp_Object))
+{
+  ios_dispatch_init();
+
+  /* Ensure capacity */
+  if (ios_dispatch_count >= ios_dispatch_capacity) {
+    int new_capacity = ios_dispatch_capacity * 2;
+    ios_command_entry *new_table = xrealloc(ios_dispatch_table,
+                                             sizeof(ios_command_entry) * new_capacity);
+    ios_dispatch_table = new_table;
+    ios_dispatch_capacity = new_capacity;
+  }
+
+  /* Check if already registered (update existing) */
+  for (int i = 0; i < ios_dispatch_count; i++) {
+    if (ios_dispatch_table[i].command_id == cmd_id) {
+      ios_dispatch_table[i].handler = handler;
+      ios_dispatch_table[i].elisp_func = elisp_func;
+      return;
+    }
+  }
+
+  /* Add new entry */
+  ios_dispatch_table[ios_dispatch_count].name = xstrdup(name);
+  ios_dispatch_table[ios_dispatch_count].command_id = cmd_id;
+  ios_dispatch_table[ios_dispatch_count].handler = handler;
+  ios_dispatch_table[ios_dispatch_count].elisp_func = elisp_func;
+  ios_dispatch_count++;
+}
+
+ios_command_entry *
+ios_dispatch_lookup(int command_id)
+{
+  if (ios_dispatch_table == NULL) return NULL;
+
+  for (int i = 0; i < ios_dispatch_count; i++) {
+    if (ios_dispatch_table[i].command_id == command_id) {
+      return &ios_dispatch_table[i];
+    }
+  }
+  return NULL;
+}
+
+Lisp_Object
+ios_dispatch_command(int command_id, Lisp_Object args)
+{
+  ios_command_entry *entry = ios_dispatch_lookup(command_id);
+
+  if (entry == NULL) {
+    return Fsignal(Qerror, list2(build_string("Unknown iOS command"), make_fixnum(command_id)));
+  }
+
+  /* If a custom handler is registered, use it */
+  if (entry->handler != NULL) {
+    return entry->handler(args);
+  }
+
+  /* Otherwise, call the elisp function directly */
+  if (entry->elisp_func != NULL) {
+    return entry->elisp_func(args);
+  }
+
+  return Fsignal(Qerror, list2(build_string("iOS command has no handler"),
+                               build_string(entry->name)));
+}
+
 
 /* ==========================================================================
 
@@ -526,5 +614,8 @@ void syms_of_iosfns (void)
   DEFSYM (Qlight, "light");
   /* DO NOT redefine Qfont, Qfont_backend, Qforeground_color, etc.
      They are standard Emacs symbols already defined elsewhere.  */
+
+  /* Initialize dispatch system */
+  ios_dispatch_init();
 }
 #endif /* HAVE_IOS */

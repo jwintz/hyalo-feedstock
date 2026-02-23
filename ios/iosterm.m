@@ -380,42 +380,50 @@ ios_report_load_progress (const char *filename)
    Note: Not using __weak since we're in MRC mode.  The view lifetime
    is managed by the UIWindow hierarchy.  */
 static EmacsView *ios_main_emacs_view = nil;
-
+/* Flag to track if bootstrap completed before view was set.
+   Used to trigger redraw when view becomes available.  */
+static bool ios_bootstrap_complete_pending_redraw = false;
 /* Called when bootstrap is complete (frame is about to be shown).  */
 void
 ios_report_bootstrap_complete (void)
 {
   if (!ios_bootstrap_in_progress)
     return;
-    
-  ios_bootstrap_in_progress = false;
   ios_bootstrap_complete ();
-  
-  NSLog(@"ios_report_bootstrap_complete: scheduling delayed redraw via performSelector");
-  
-  /* Schedule a redraw after a delay using performSelector which integrates
-     with the main runloop timer mechanism.  */
+  NSLog(@"ios_report_bootstrap_complete: checking view availability");
   EmacsView *view = ios_main_emacs_view;
   if (view)
     {
-      /* dispatch_async to get onto the main thread, then schedule the timer.  */
+      /* View exists - schedule redraw immediately.  */
       dispatch_async(dispatch_get_main_queue(), ^{
-        NSLog(@"ios_report_bootstrap_complete: on main thread, scheduling timer");
-        [view performSelector:@selector(setNeedsDisplay) withObject:nil afterDelay:0.5];
+        NSLog(@"ios_report_bootstrap_complete: view exists, scheduling immediate redraw");
+        [view setNeedsDisplay];
       });
     }
   else
     {
-      NSLog(@"ios_report_bootstrap_complete: ERROR - view is nil, cannot schedule redraw!");
+      /* View not yet created - set flag so redraw happens when view is set.  */
+      NSLog(@"ios_report_bootstrap_complete: view not yet created, setting pending flag");
+      ios_bootstrap_complete_pending_redraw = true;
     }
 }
 
-/* Set the main EmacsView for delayed redraw.  Called from EmacsView init.  */
+/* Set the main EmacsView for delayed redraw.  Called from EmacsView init.
+   If bootstrap already completed, triggers the pending redraw.  */
 void
 ios_set_main_emacs_view (EmacsView *view)
 {
-  NSLog(@"ios_set_main_emacs_view: view=%p", view);
+  NSLog(@"ios_set_main_emacs_view: view=%p, pending_redraw=%d", view, ios_bootstrap_complete_pending_redraw);
   ios_main_emacs_view = view;
+  /* If bootstrap completed before view was ready, trigger redraw now.  */
+  if (view && ios_bootstrap_complete_pending_redraw)
+    {
+      NSLog(@"ios_set_main_emacs_view: triggering pending bootstrap redraw");
+      ios_bootstrap_complete_pending_redraw = false;
+      dispatch_async(dispatch_get_main_queue(), ^{
+        [view setNeedsDisplay];
+      });
+    }
 }
 
 

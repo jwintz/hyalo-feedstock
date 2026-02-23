@@ -1,0 +1,262 @@
+diff --git a/pixi.toml b/pixi.toml
+index 927c0e8..6d58987 100644
+--- a/pixi.toml
++++ b/pixi.toml
+@@ -46,20 +46,28 @@ libgccjit = ">=15.2.0"
+ [tasks]
+ # ============= Shared Tasks =============
+ 
+-# Revert patches by restoring emacs submodule to clean state
+-unpatch = { cwd = "emacs", cmd = "git checkout . && rm -f .patched .patched-ios", description = "Revert all patches in emacs submodule" }
++# Remove all build directories (emacs/ stays pristine)
++clean-builds = { cmd = "rm -rf emacs-build-macos emacs-build-ios-sim emacs-build-ios-device", description = "Remove all build directories (emacs/ stays pristine)" }
+ 
+-# Clean build artifacts
+-clean = { cwd = "emacs", cmd = "make clean", description = "Clean build artifacts" }
++# Clean build artifacts in macOS build
++clean = { cwd = "emacs-build-macos", cmd = "make clean 2>/dev/null || true", description = "Clean macOS build artifacts" }
+ 
+-# Deep clean including configure output and patches
+-distclean = { cwd = "emacs", cmd = "make distclean 2>/dev/null || true && git checkout . && rm -f .patched .patched-ios lib/gmp.h", description = "Deep clean" }
++# Deep clean macOS build including configure output
++distclean = { cwd = "emacs-build-macos", cmd = "make distclean 2>/dev/null || true && rm -f .patched .patched-ios lib/gmp.h", description = "Deep clean macOS build" }
++
++# Prepare macOS build directory by copying from pristine emacs/
++mac_prep = { cmd = "rsync -a --delete emacs/ emacs-build-macos/ && echo 'macOS build directory prepared.'", description = "Prepare macOS build directory from pristine emacs/" }
++
++# Prepare iOS Simulator build directory by copying from pristine emacs/
++ios_sim_prep = { cmd = "rsync -a --delete emacs/ emacs-build-ios-sim/ && echo 'iOS Simulator build directory prepared.'", description = "Prepare iOS Simulator build directory from pristine emacs/" }
++
++# Prepare iOS Device build directory by copying from pristine emacs/
++ios_device_prep = { cmd = "rsync -a --delete emacs/ emacs-build-ios-device/ && echo 'iOS Device build directory prepared.'", description = "Prepare iOS Device build directory from pristine emacs/" }
+ 
+ # ============= macOS Tasks (mac_*) =============
+ 
+ # Apply patches for macOS build
+-mac_patch = { cwd = "emacs", cmd = """
+-git checkout . && \
++mac_patch = { cwd = "emacs-build-macos", cmd = """
+ patch -p1 < ../patches/system-appearance.patch && \
+ patch -p1 < ../patches/frame-transparency.patch && \
+ patch -p1 < ../patches/unidata-gen-incf.patch && \
+@@ -69,13 +77,13 @@ patch -p1 < ../patches/ios-compat.patch && \
+ cp ../icons/Emacs.icns nextstep/Cocoa/Emacs.base/Contents/Resources/Emacs.icns && \
+ touch .patched && \
+ echo 'macOS patches applied successfully.'
+-""", outputs = [".patched"], description = "Apply macOS patches to emacs submodule" }
++""", depends-on = ["mac_prep"], outputs = ["emacs-build-macos/.patched"], description = "Apply macOS patches to build directory" }
+ 
+ # Generate configure script for macOS
+-mac_autogen = { cwd = "emacs", cmd = "./autogen.sh", depends-on = ["mac_patch"], inputs = ["configure.ac"], outputs = ["configure"], description = "Generate configure script for macOS" }
++mac_autogen = { cwd = "emacs-build-macos", cmd = "./autogen.sh", depends-on = ["mac_patch"], inputs = ["configure.ac"], outputs = ["emacs-build-macos/configure"], description = "Generate configure script for macOS" }
+ 
+ # Configure for macOS with NS support
+-mac_configure = { cwd = "emacs", cmd = """
++mac_configure = { cwd = "emacs-build-macos", cmd = """
+ ./configure \
+   --with-ns \
+   --with-gnutls \
+@@ -94,31 +102,30 @@ mac_configure = { cwd = "emacs", cmd = """
+   PKG_CONFIG_PATH=\"$CONDA_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH\" \
+   RSVG_CFLAGS=\"-I$CONDA_PREFIX/include/librsvg-2.0 -I$CONDA_PREFIX/include/gdk-pixbuf-2.0 -I$CONDA_PREFIX/include/cairo -I$CONDA_PREFIX/include/glib-2.0 -I$CONDA_PREFIX/lib/glib-2.0/include\" \
+   RSVG_LIBS=\"-L$CONDA_PREFIX/lib -lrsvg-2 -lm -lgdk_pixbuf-2.0 -lcairo -lgio-2.0 -lgobject-2.0 -lglib-2.0\"
+-""", depends-on = ["mac_autogen"], inputs = ["configure"], outputs = ["config.status"], description = "Configure Emacs for macOS with NS support" }
++""", depends-on = ["mac_autogen"], inputs = ["configure"], outputs = ["emacs-build-macos/config.status"], description = "Configure Emacs for macOS with NS support" }
+ 
+ # Build Emacs for macOS
+-mac_build = { cwd = "emacs", cmd = "make -j$(sysctl -n hw.ncpu)", depends-on = ["mac_configure"], description = "Build Emacs for macOS" }
++mac_build = { cwd = "emacs-build-macos", cmd = "make -j$(sysctl -n hw.ncpu)", depends-on = ["mac_configure"], description = "Build Emacs for macOS" }
+ 
+ # Update loaddefs.el for macOS
+-mac_autoloads = { cwd = "emacs/lisp", cmd = "make autoloads", depends-on = ["mac_configure"], description = "Update loaddefs.el for macOS" }
++mac_autoloads = { cwd = "emacs-build-macos/lisp", cmd = "make autoloads", depends-on = ["mac_configure"], description = "Update loaddefs.el for macOS" }
+ 
+ # Bootstrap Emacs for macOS
+-mac_bootstrap = { cwd = "emacs", cmd = "make bootstrap -j$(sysctl -n hw.ncpu)", depends-on = ["mac_configure"], description = "Bootstrap Emacs for macOS" }
++mac_bootstrap = { cwd = "emacs-build-macos", cmd = "make bootstrap -j$(sysctl -n hw.ncpu)", depends-on = ["mac_configure"], description = "Bootstrap Emacs for macOS" }
+ 
+ # Install macOS Emacs.app
+-mac_install = { cwd = "emacs", cmd = "make install && codesign --force --deep --sign - ./nextstep/Emacs.app", depends-on = ["mac_build"], outputs = ["nextstep/Emacs.app/Contents/MacOS/Emacs"], description = "Install macOS Emacs.app and sign" }
++mac_install = { cwd = "emacs-build-macos", cmd = "make install && codesign --force --deep --sign - ./nextstep/Emacs.app", depends-on = ["mac_build"], outputs = ["emacs-build-macos/nextstep/Emacs.app/Contents/MacOS/Emacs"], description = "Install macOS Emacs.app and sign" }
+ 
+ # Run macOS Emacs
+-mac_run = { cwd = "emacs", cmd = "./nextstep/Emacs.app/Contents/MacOS/Emacs", depends-on = ["mac_install"], description = "Run macOS Emacs.app" }
++mac_run = { cwd = "emacs-build-macos", cmd = "./nextstep/Emacs.app/Contents/MacOS/Emacs", depends-on = ["mac_install"], description = "Run macOS Emacs.app" }
+ 
+ # Run the test suite
+-mac_check = { cwd = "emacs", cmd = "make check", depends-on = ["mac_build"], description = "Run Emacs test suite" }
++mac_check = { cwd = "emacs-build-macos", cmd = "make check", depends-on = ["mac_build"], description = "Run Emacs test suite" }
+ 
+ # ============= iOS Shared Tasks (ios_*) =============
+ 
+ # Apply iOS-specific patches (shared between simulator and device)
+-ios_patch = { cwd = "emacs", cmd = """
+-git checkout . && \
++ios_patch = { cwd = "emacs-build-ios-sim", cmd = """
+ patch -p1 < ../patches/system-appearance.patch && \
+ patch -p1 < ../patches/frame-transparency.patch && \
+ patch -p1 < ../patches/unidata-gen-incf.patch && \
+@@ -150,13 +157,13 @@ patch -p1 < ../patches/ios-faces-lisp.patch && \
+ patch -p1 < ../patches/ios-cus-edit-lisp.patch && \
+ touch .patched-ios && \
+ echo 'iOS patches applied successfully.'
+-""", outputs = [".patched-ios"], description = "Apply iOS patches to emacs submodule" }
++""", depends-on = ["ios_sim_prep"], outputs = [".patched-ios"], description = "Apply iOS patches to Simulator build directory" }
+ 
+ # Generate configure script for iOS (shared)
+-ios_autogen = { cwd = "emacs", cmd = "./autogen.sh", depends-on = ["ios_patch"], inputs = ["configure.ac"], outputs = ["configure"], description = "Generate configure script for iOS" }
++ios_autogen = { cwd = "emacs-build-ios-sim", cmd = "./autogen.sh", depends-on = ["ios_patch"], inputs = ["configure.ac"], outputs = ["emacs-build-ios-sim/configure"], description = "Generate configure script for iOS" }
+ 
+ # Install iOS source files into emacs submodule (shared)
+-ios_install_src = { cmd = "./scripts/install-ios-src.sh", description = "Install iOS source files into emacs/src" }
++ios_install_src = { cmd = "BUILD_DIR=emacs-build-ios-sim ./scripts/install-ios-src.sh", description = "Install iOS source files into emacs/src" }
+ 
+ # Copy Emacs build artifacts to app Resources (shared)
+ ios_copy_resources = { cmd = """
+@@ -166,33 +173,33 @@ RESOURCES="ios/Resources"
+ mkdir -p "$RESOURCES"
+ 
+ # Compress temacs if not already done
+-if [ ! -f "$RESOURCES/temacs.data" ] || [ emacs/src/temacs -nt "$RESOURCES/temacs.data" ]; then
++if [ ! -f "$RESOURCES/temacs.data" ] || [ emacs-build-ios-sim/src/temacs -nt "$RESOURCES/temacs.data" ]; then
+     echo "Compressing temacs..."
+-    gzip -c emacs/src/temacs > "$RESOURCES/temacs.data"
++    gzip -c emacs-build-ios-sim/src/temacs > "$RESOURCES/temacs.data"
+ fi
+ 
+ # Copy pdmp
+-if [ ! -f "$RESOURCES/bootstrap-emacs.pdmp" ] || [ emacs/src/bootstrap-emacs.pdmp -nt "$RESOURCES/bootstrap-emacs.pdmp" ]; then
++if [ ! -f "$RESOURCES/bootstrap-emacs.pdmp" ] || [ emacs-build-ios-sim/src/bootstrap-emacs.pdmp -nt "$RESOURCES/bootstrap-emacs.pdmp" ]; then
+     echo "Copying pdmp..."
+-    cp emacs/src/bootstrap-emacs.pdmp "$RESOURCES/"
++    cp emacs-build-ios-sim/src/bootstrap-emacs.pdmp "$RESOURCES/"
+ fi
+ 
+ # Copy lisp directory (rsync for efficiency)
+-if [ -d emacs/lisp ]; then
++if [ -d emacs-build-ios-sim/lisp ]; then
+     echo "Syncing lisp directory..."
+-    rsync -a --delete emacs/lisp "$RESOURCES/"
++    rsync -a --delete emacs-build-ios-sim/lisp "$RESOURCES/"
+ fi
+ 
+ # Copy etc directory
+-if [ -d emacs/etc ]; then
++if [ -d emacs-build-ios-sim/etc ]; then
+     echo "Syncing etc directory..."
+-    rsync -a --delete emacs/etc "$RESOURCES/"
++    rsync -a --delete emacs-build-ios-sim/etc "$RESOURCES/"
+ fi
+ 
+ # Copy info directory (documentation)
+-if [ -d emacs/info ]; then
++if [ -d emacs-build-ios-sim/info ]; then
+     echo "Syncing info directory..."
+-    rsync -a --delete emacs/info "$RESOURCES/"
++    rsync -a --delete emacs-build-ios-sim/info "$RESOURCES/"
+ fi
+ 
+ echo "Resources copied successfully."
+@@ -205,7 +212,7 @@ echo "Resources copied successfully."
+ ios_sim_deps = { cmd = "./scripts/build-sim-deps.sh", description = "Build iOS Simulator dependencies" }
+ 
+ # Configure Emacs for iOS Simulator
+-ios_sim_configure = { cwd = "emacs", cmd = """
++ios_sim_configure = { cwd = "emacs-build-ios-sim", cmd = """
+ bash -c '
+ export SDKPATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+ export DEVELOPER_DIR=$(xcode-select -p)
+@@ -253,7 +260,7 @@ export LDFLAGS="-arch ${ARCH} -isysroot ${SDKPATH} -mios-simulator-version-min=$
+ """, description = "Configure Emacs for iOS Simulator" }
+ 
+ # Build Emacs for iOS Simulator
+-ios_sim_build = { cwd = "emacs", cmd = """
++ios_sim_build = { cwd = "emacs-build-ios-sim", cmd = """
+ bash -c '
+ set -e
+ export SDKPATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
+@@ -283,7 +290,7 @@ echo "=== temacs compiled successfully for iOS Simulator ==="
+ """, description = "Build Emacs for iOS Simulator (temacs)" }
+ 
+ # Build libemacs.a for iOS Simulator
+-ios_sim_build_libemacs = { cwd = "emacs/src", cmd = """
++ios_sim_build_libemacs = { cwd = "emacs-build-ios-sim/src", cmd = """
+ bash -c '
+ set -e
+ export DEVELOPER_DIR=$(xcode-select -p)
+@@ -312,7 +319,7 @@ echo "Object count: $(${AR} t libemacs.a | wc -l)"
+ """, description = "Build libemacs.a for iOS Simulator" }
+ 
+ # Generate pdmp on iOS Simulator
+-ios_sim_generate_pdmp = { cwd = "emacs", cmd = """
++ios_sim_generate_pdmp = { cwd = "emacs-build-ios-sim", cmd = """
+ bash -c '
+ set -e
+ BOOTED=$(xcrun simctl list devices booted | grep -c "Booted" || true)
+@@ -367,8 +374,43 @@ ios_sim_open = { cmd = "open -a Simulator", description = "Open iOS Simulator ap
+ # Build iOS Device dependencies
+ ios_device_deps = { cmd = "./scripts/build-device-deps.sh", description = "Build iOS Device dependencies" }
+ 
++# Apply iOS patches to Device build directory
++ios_device_patch = { cwd = "emacs-build-ios-device", cmd = """
++patch -p1 < ../patches/system-appearance.patch && \
++patch -p1 < ../patches/frame-transparency.patch && \
++patch -p1 < ../patches/unidata-gen-incf.patch && \
++patch -p1 < ../patches/loaddefs-gen-fix.patch && \
++patch -p1 < ../patches/derived-fix.patch && \
++patch -p1 < ../patches/ios-build-system.patch && \
++patch -p1 < ../patches/ios-libs.patch && \
++patch -p1 < ../patches/ios-frame.patch && \
++patch -p1 < ../patches/ios-xfaces.patch && \
++patch -p1 < ../patches/ios-image.patch && \
++patch -p1 < ../patches/ios-font-driver.patch && \
++patch -p1 < ../patches/ios-font.patch && \
++patch -p1 < ../patches/ios-configure-full.patch && \
++patch -p1 < ../patches/ios-dispnew.patch && \
++patch -p1 < ../patches/ios-epaths.patch && \
++patch -p1 < ../patches/ios-emacs-entry.patch && \
++patch -p1 < ../patches/ios-compat.patch && \
++patch -p1 < ../patches/ios-macroexp.patch && \
++patch -p1 < ../patches/ios-terminal.patch && \
++patch -p1 < ../patches/ios-debug.patch && \
++patch -p1 < ../patches/ios-checkstring.patch && \
++patch -p1 < ../patches/ios-loadup.patch && \
++patch -p1 < ../patches/ios-bidi.patch && \
++patch -p1 < ../patches/ios-try-window.patch && \
++patch -p1 < ../patches/ios-character.patch && \
++patch -p1 < ../patches/ios-bootstrap-progress.patch && \
++patch -p1 < ../patches/ios-frame-lisp.patch && \
++patch -p1 < ../patches/ios-faces-lisp.patch && \
++patch -p1 < ../patches/ios-cus-edit-lisp.patch && \
++touch .patched-ios && \
++echo 'iOS Device patches applied successfully.'
++""", depends-on = ["ios_device_prep"], outputs = [".patched-ios"], description = "Apply iOS patches to Device build directory" }
++
+ # Configure Emacs for iOS Device
+-ios_device_configure = { cwd = "emacs", cmd = """
++ios_device_configure = { cwd = "emacs-build-ios-device", cmd = """
+ bash -c '
+ export SDKPATH=$(xcrun --sdk iphoneos --show-sdk-path)
+ export DEVELOPER_DIR=$(xcode-select -p)
+@@ -413,10 +455,10 @@ export LDFLAGS="-arch ${ARCH} -isysroot ${SDKPATH} -miphoneos-version-min=${IOS_
+     LIBS_TERMCAP="" \
+     PKG_CONFIG_PATH="$IOS_DEVICE_PREFIX/lib/pkgconfig"
+ '
+-""", description = "Configure Emacs for iOS Device" }
++""", depends-on = ["ios_device_patch"], description = "Configure Emacs for iOS Device" }
+ 
+ # Build Emacs for iOS Device
+-ios_device_build = { cwd = "emacs", cmd = """
++ios_device_build = { cwd = "emacs-build-ios-device", cmd = """
+ bash -c '
+ set -e
+ export SDKPATH=$(xcrun --sdk iphoneos --show-sdk-path)
+@@ -446,7 +488,7 @@ echo "=== temacs compiled successfully for iOS Device ==="
+ """, description = "Build Emacs for iOS Device (temacs)" }
+ 
+ # Build libemacs.a for iOS Device
+-ios_device_build_libemacs = { cwd = "emacs/src", cmd = """
++ios_device_build_libemacs = { cwd = "emacs-build-ios-device/src", cmd = """
+ bash -c '
+ set -e
+ export DEVELOPER_DIR=$(xcode-select -p)
