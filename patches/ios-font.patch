@@ -33,3 +33,14 @@ index 402980e..a531122 100644
  extern Lisp_Object font_build_object (int, Lisp_Object, Lisp_Object, double);
  #endif
  
+@@ -986,6 +986,9 @@
+ extern void syms_of_nsfont (void);
+ extern void syms_of_macfont (void);
+ #endif	/* HAVE_NS */
++#ifdef HAVE_IOS
++extern void syms_of_macfont (void);
++#endif	/* HAVE_IOS */
+ #if defined (USE_CAIRO) || defined (USE_BE_CAIRO)
+ extern struct font_driver const ftcrfont_driver;
+ #ifdef HAVE_HARFBUZZ
+

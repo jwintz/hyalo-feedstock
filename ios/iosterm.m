@@ -409,22 +409,10 @@ ios_report_bootstrap_complete (void)
 }
 
 /* Set the main EmacsView for delayed redraw.  Called from EmacsView init.
-   If bootstrap already completed, triggers the pending redraw.  */
-void
-ios_set_main_emacs_view (EmacsView *view)
-{
-  NSLog(@"ios_set_main_emacs_view: view=%p, pending_redraw=%d", view, ios_bootstrap_complete_pending_redraw);
-  ios_main_emacs_view = view;
-  /* If bootstrap completed before view was ready, trigger redraw now.  */
-  if (view && ios_bootstrap_complete_pending_redraw)
-    {
-      NSLog(@"ios_set_main_emacs_view: triggering pending bootstrap redraw");
-      ios_bootstrap_complete_pending_redraw = false;
-      dispatch_async(dispatch_get_main_queue(), ^{
-        [view setNeedsDisplay];
-      });
-    }
-}
+   If bootstrap already completed, triggers the pending redraw.
+   The real implementation is provided by Swift via @_cdecl.  This
+   declaration makes the symbol available for C callers.  */
+extern void ios_set_main_emacs_view (EmacsView *view);
 
 
 /* ==========================================================================
@@ -6021,6 +6009,14 @@ void
 syms_of_iosterm (void)
 {
   IOSTRACE ("syms_of_iosterm");
+
+  /* Register the Mac font driver (CoreText-based, shared with macOS).
+     On macOS this is called from syms_of_nsterm().  On iOS we must call
+     it here so that macfont_driver.type is set to Qmac_ct and the driver
+     is registered globally before any frame is created.  Without this,
+     font_update_drivers() returns nil and Emacs aborts with
+     "No font backend available".  */
+  syms_of_macfont ();
 
   /* Protect color_map from garbage collection.  */
   Vios_color_map = Qnil;

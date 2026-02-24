@@ -29,6 +29,7 @@ echo "  To:   $EMACS_SRC_DIR"
 # List of iOS-specific source files
 IOS_FILES=(
     "iosgui.h"
+    "iosdispatch.h"
     "iosterm.h"
     "iosterm.m"
     "iosfns.m"

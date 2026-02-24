@@ -302,10 +302,11 @@ rm -f libemacs.a
 ${AR} rcs libemacs.a *.o
 
 if [ -f ../lib/libgnu.a ]; then
-    echo "Adding libgnu.a objects..."
+    echo "Adding libgnu.a objects (excluding regex.o to avoid duplicates with regex-emacs.o)..."
     mkdir -p _libgnu_tmp
     cd _libgnu_tmp
     ${AR} x ../../lib/libgnu.a
+    rm -f regex.o
     ${AR} rcs ../libemacs.a *.o
     cd ..
     rm -rf _libgnu_tmp

@@ -83,22 +83,7 @@ extern Lisp_Object ios_dispatch_command(int command_id, Lisp_Object args);
 extern ios_command_entry *ios_dispatch_lookup(int command_id);
 extern void ios_dispatch_init(void);
 
-/* ==========================================================================
-   DEFUN_IOS macro
-
-   Usage:
-     DEFUN_IOS (cmd_id, "ios-open-file", Fios_open_file, Sios_open_file,
-                1, 1, 0, doc: /* Open file in Hyalo.  */)
-       (Lisp_Object filename)
-     {
-       // Function body
-     }
-
-   This macro:
-   1. Defines the standard Emacs primitive using DEFUN
-   2. Registers the function in the iOS dispatch table
-   3. Allows Swift to call this function by command ID
-   ========================================================================== */
+/* DEFUN_IOS macro: wraps DEFUN and registers in iOS dispatch table.  */
 
 #define DEFUN_IOS(cmd_id, lname, fnname, sname, minargs, maxargs, intspec, doc) \
   DEFUN(lname, fnname, sname, minargs, maxargs, intspec, doc); \
@@ -116,3 +101,6 @@ extern void ios_dispatch_init(void);
     ios_dispatch_register(cmd_id, lname, wrapper, fnname); \
   } \
   Lisp_Object fnname
+
+#endif /* HAVE_IOS */
+#endif /* EMACS_IOSDISPATCH_H */
