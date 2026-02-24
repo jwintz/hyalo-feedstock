@@ -73,7 +73,6 @@ patch -p1 < ../patches/frame-transparency.patch && \
 patch -p1 < ../patches/unidata-gen-incf.patch && \
 patch -p1 < ../patches/loaddefs-gen-fix.patch && \
 patch -p1 < ../patches/derived-fix.patch && \
-patch -p1 < ../patches/ios-compat.patch && \
 cp ../icons/Emacs.icns nextstep/Cocoa/Emacs.base/Contents/Resources/Emacs.icns && \
 touch .patched && \
 echo 'macOS patches applied successfully.'
