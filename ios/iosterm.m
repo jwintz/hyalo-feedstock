@@ -1057,17 +1057,31 @@ iostrace_restore_global_trace_state (int *pointer_to_saved_enabled_global)
 {
   [super layoutSubviews];
 
-  /* Layout is now handled by EmacsViewController.
-     Just ensure the display is refreshed.  */
   struct frame *f = emacsframe;
   if (f == NULL || !FRAME_LIVE_P (f))
     return;
-    
-  /* Only log if the size actually changes meaningfully.  */
+
   CGRect bounds = self.bounds;
-  if (bounds.size.width > 0 && bounds.size.height > 0)
+  int newWidth = (int) bounds.size.width;
+  int newHeight = (int) bounds.size.height;
+  if (newWidth < 1 || newHeight < 1)
+    return;
+
+  NSLog (@"EmacsView layoutSubviews: bounds=%@", NSStringFromCGRect (bounds));
+
+  /* Notify Emacs when the view size changes.  This covers both the
+     EmacsViewController path (where the VC also calls
+     ios_request_frame_resize from viewDidLayoutSubviews) and the
+     SwiftUI path (where there is no EmacsViewController and this is
+     the only size-change notification).  Duplicate events with the
+     same dimensions are harmless — the event handler checks for
+     actual change.  */
+  if (newWidth != FRAME_PIXEL_WIDTH (f)
+      || newHeight != FRAME_PIXEL_HEIGHT (f))
     {
-      NSLog(@"EmacsView layoutSubviews: bounds=%@", NSStringFromCGRect(bounds));
+      extern void ios_request_frame_resize (struct frame *f,
+                                            int width, int height);
+      ios_request_frame_resize (f, newWidth, newHeight);
     }
 }
 
@@ -2984,12 +2998,35 @@ ios_get_main_window (void)
   return ios_main_window;
 }
 
+/* Weak callback queried by ios_connect_frame_to_window.
+   When a SwiftUI host links a strong definition (via @_cdecl) that
+   returns true, the function skips its default rootViewController
+   replacement and becomeFirstResponder call.  The default (weak)
+   implementation returns false — the feedstock manages the window.  */
+__attribute__((weak))
+bool
+ios_has_swiftui_host (void)
+{
+  return false;
+}
+
 /* Connect an Emacs frame to the UIWindow.
    Called from iosfns.m when creating the initial frame.  */
 void
 ios_connect_frame_to_window (struct frame *f)
 {
   IOSTRACE ("ios_connect_frame_to_window");
+
+  /* When a SwiftUI host manages the window, skip the rootViewController
+     replacement and delayed becomeFirstResponder.  The view was already
+     handed off via ios_set_main_emacs_view (called from EmacsView init);
+     SwiftUI embeds it through EmacsUIViewRepresentable and asserts first
+     responder once the view has proper bounds.  */
+  if (ios_has_swiftui_host ())
+    {
+      IOSTRACE ("ios_connect_frame_to_window: SwiftUI host — skipping rootVC");
+      return;
+    }
 
   if (ios_main_window == nil)
     {
