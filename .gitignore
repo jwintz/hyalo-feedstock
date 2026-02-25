@@ -33,3 +33,4 @@ emacs/lib-src/
 # Emacs dedicated build directories
 emacs-build-ios-sim/
 emacs-build-macos/
+emacs-build-ios-device/
