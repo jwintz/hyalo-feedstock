@@ -457,6 +457,12 @@ DEFUN ("x-create-frame", Fx_create_frame, Sx_create_frame, 1, 1, 0,
      update will always detect a "change" and set up colors properly.  */
   f->output_data.ios->last_face_background = 0xDEADBEEF;
 
+  /* On iOS there is no vibrancy/material layer beneath the frame.
+     Force alpha_background to 1.0 so face realization in xfaces.c
+     does not encode transparent (0x0) background pixels.  Any
+     alpha-background value from default-frame-alist is overridden.  */
+  f->alpha_background = 1.0;
+
   mac_register_font_driver (f);
   
   /* Use direct symbols.  */
