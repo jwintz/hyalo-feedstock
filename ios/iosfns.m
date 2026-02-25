@@ -296,6 +296,7 @@ ios_set_foreground_color (struct frame *f, Lisp_Object arg, Lisp_Object oldval)
     {
       if (output->foreground_color) [output->foreground_color release];
       output->foreground_color = [[UIColor colorWithUnsignedLong:col.pixel] retain];
+      FRAME_FOREGROUND_PIXEL (f) = col.pixel;
       if (FRAME_VISIBLE_P (f)) SET_FRAME_GARBAGED (f);
     }
 }
@@ -310,15 +311,14 @@ ios_set_background_color (struct frame *f, Lisp_Object arg, Lisp_Object oldval)
   if (!output)
     return;
   
-  NSLog(@"ios_set_background_color: arg=%s", STRINGP(arg) ? SSDATA(arg) : "(not string)");
     
   Emacs_Color col;
   if (ios_defined_color (f, SSDATA (arg), &col, true, false))
     {
-      NSLog(@"ios_set_background_color: color resolved to pixel=0x%lx", col.pixel);
       
       if (output->background_color) [output->background_color release];
       output->background_color = [[UIColor colorWithUnsignedLong:col.pixel] retain];
+      FRAME_BACKGROUND_PIXEL (f) = col.pixel;
       
       /* Also update last_face_background so ios_update_end doesn't fight with us.  */
       output->last_face_background = col.pixel;
@@ -499,8 +499,6 @@ DEFUN ("x-create-frame", Fx_create_frame, Sx_create_frame, 1, 1, 0,
   int text_width = cols * col_width;
   int text_height = lines * line_height;
   
-  NSLog(@"ios_create_frame: screen=%.0fx%.0f pts, col_width=%d line_height=%d, cols=%d lines=%d, text=%dx%d",
-        screenWidthPts, screenHeightPts, col_width, line_height, cols, lines, text_width, text_height);
 
   /* Set min_width/min_height to avoid Lisp call during early frame init.  */
   store_frame_param (f, Qmin_width, make_fixnum (1));
@@ -509,10 +507,6 @@ DEFUN ("x-create-frame", Fx_create_frame, Sx_create_frame, 1, 1, 0,
   adjust_frame_size (f, text_width, text_height, 5, true, Qnil);
   adjust_frame_glyphs (f);
   
-  NSLog(@"ios_create_frame: after adjust_frame_size: FRAME_PIXEL=%dx%d TEXT=%dx%d COLS=%d LINES=%d",
-        FRAME_PIXEL_WIDTH(f), FRAME_PIXEL_HEIGHT(f),
-        FRAME_TEXT_WIDTH(f), FRAME_TEXT_HEIGHT(f),
-        FRAME_COLS(f), FRAME_LINES(f));
 
   block_input ();
   f->output_data.ios->view = [EmacsView createFrameView:f];
@@ -533,17 +527,8 @@ DEFUN ("x-create-frame", Fx_create_frame, Sx_create_frame, 1, 1, 0,
   
   /* Force a full frame redraw to clear the garbaged flag and 
      trigger initial drawing.  This calls update_begin/update_end.  */
-  NSLog(@"ios_create_frame: glyphs_initialized_p=%d before Fredraw_frame", f->glyphs_initialized_p);
   if (f->glyphs_initialized_p)
-    {
-      NSLog(@"ios_create_frame: calling Fredraw_frame to trigger initial redraw");
-      Fredraw_frame (lisp_frame);
-      NSLog(@"ios_create_frame: Fredraw_frame returned");
-    }
-  else
-    {
-      NSLog(@"ios_create_frame: glyphs NOT initialized, skipping Fredraw_frame");
-    }
+    Fredraw_frame (lisp_frame);
   
   /* Clear window list cache to make sure windows on this frame appear
      in calls to next-window and similar functions.  */
