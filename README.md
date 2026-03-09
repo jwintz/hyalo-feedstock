@@ -266,8 +266,8 @@ New files in `ios/` are not patches -- they are standalone source files copied b
 | `iosterm.h` | iOS terminal declarations, EmacsView @interface, display info structs |
 | `iosgui.h` | iOS GUI types (event enums, modifier masks, color typedefs) |
 | `iosdispatch.h` | Single dispatch system types and macros (DEFUN_IOS) |
-| `ios-termstubs.c` | Stub functions for iOS terminal |
-| `ios-win.el` | iOS window system initialization (lisp/term/) |
+| `hyalo-termstubs.c` | Stub functions for iOS terminal |
+| `hyalo-win.el` | iOS window system initialization (lisp/term/) |
 
 ### Build Artifacts in libemacs.a
 

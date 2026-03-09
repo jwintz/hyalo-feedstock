@@ -12,12 +12,8 @@ ios-deps/
 # Native build tools
 native-tools/
 
-# iOS Resources (generated from Emacs build)
-ios/Resources/bootstrap-emacs.pdmp
-ios/Resources/temacs.data
-ios/Resources/lisp/
-ios/Resources/etc/
-ios/Resources/info/
+# Hyalo Resources (generated from Emacs build)
+hyalo/Resources/
 
 # Emacs build artifacts (in submodule)
 emacs/src/*.o
@@ -31,6 +27,8 @@ emacs/lib/*.a
 emacs/lib-src/
 
 # Emacs dedicated build directories
-emacs-build-ios-sim/
-emacs-build-macos/
-emacs-build-ios-device/
+emacs-build-*/
+# macOS build artifacts
+build-mac/
+mac-deps/
+build-error.log
