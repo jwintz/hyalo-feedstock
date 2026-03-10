@@ -44,25 +44,22 @@ libtree-sitter = ">=0.20.10"
 libgccjit = ">=15.2.0"
 
 [tasks]
-# ============= Shared Tasks =============
+# ============= Build Tasks =============
 
 # Remove all build directories (emacs/ stays pristine)
 clean-builds = { cmd = "rm -rf emacs-build-macos", description = "Remove all build directories (emacs/ stays pristine)" }
 
-# Clean build artifacts in macOS build
-clean = { cwd = "emacs-build-macos", cmd = "make clean 2>/dev/null || true", description = "Clean macOS build artifacts" }
+# Clean build artifacts
+clean = { cwd = "emacs-build-macos", cmd = "make clean 2>/dev/null || true", description = "Clean build artifacts" }
 
-# Deep clean macOS build including configure output
-distclean = { cwd = "emacs-build-macos", cmd = "make distclean 2>/dev/null || true && rm -f .patched lib/gmp.h", description = "Deep clean macOS build" }
+# Deep clean build including configure output
+distclean = { cwd = "emacs-build-macos", cmd = "make distclean 2>/dev/null || true && rm -f .patched lib/gmp.h", description = "Deep clean build" }
 
-# Prepare macOS build directory by copying from pristine emacs/
-mac_prep = { cmd = "rsync -a --delete emacs/ emacs-build-macos/ && echo 'macOS build directory prepared.'", description = "Prepare macOS build directory from pristine emacs/" }
+# Prepare build directory by copying from pristine emacs/
+prep = { cmd = "rsync -a --delete emacs/ emacs-build-macos/ && echo 'Build directory prepared.'", description = "Prepare build directory from pristine emacs/" }
 
-
-# ============= macOS Tasks (mac_*) =============
-
-# Apply patches for macOS build
-mac_patch = { cwd = "emacs-build-macos", cmd = """
+# Apply patches to build directory
+patch = { cwd = "emacs-build-macos", cmd = """
 patch -p1 < ../patches/system-appearance.patch && \
 patch -p1 < ../patches/frame-transparency.patch && \
 patch -p1 < ../patches/unidata-gen-incf.patch && \
@@ -70,14 +67,14 @@ patch -p1 < ../patches/loaddefs-gen-fix.patch && \
 patch -p1 < ../patches/derived-fix.patch && \
 cp ../icons/Emacs.icns nextstep/Cocoa/Emacs.base/Contents/Resources/Emacs.icns && \
 touch .patched && \
-echo 'macOS patches applied successfully.'
-""", depends-on = ["mac_prep"], outputs = ["emacs-build-macos/.patched"], description = "Apply macOS patches to build directory" }
+echo 'Patches applied successfully.'
+""", depends-on = ["prep"], outputs = ["emacs-build-macos/.patched"], description = "Apply patches to build directory" }
 
-# Generate configure script for macOS
-mac_autogen = { cwd = "emacs-build-macos", cmd = "./autogen.sh", depends-on = ["mac_patch"], inputs = ["configure.ac"], outputs = ["emacs-build-macos/configure"], description = "Generate configure script for macOS" }
+# Generate configure script
+autogen = { cwd = "emacs-build-macos", cmd = "./autogen.sh", depends-on = ["patch"], inputs = ["configure.ac"], outputs = ["emacs-build-macos/configure"], description = "Generate configure script" }
 
-# Configure for macOS with NS support
-mac_configure = { cwd = "emacs-build-macos", cmd = """
+# Configure with NS support
+configure = { cwd = "emacs-build-macos", cmd = """
 ./configure \
   --with-ns \
   --with-gnutls \
@@ -96,25 +93,25 @@ mac_configure = { cwd = "emacs-build-macos", cmd = """
   PKG_CONFIG_PATH=\"$CONDA_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH\" \
   RSVG_CFLAGS=\"-I$CONDA_PREFIX/include/librsvg-2.0 -I$CONDA_PREFIX/include/gdk-pixbuf-2.0 -I$CONDA_PREFIX/include/cairo -I$CONDA_PREFIX/include/glib-2.0 -I$CONDA_PREFIX/lib/glib-2.0/include\" \
   RSVG_LIBS=\"-L$CONDA_PREFIX/lib -lrsvg-2 -lm -lgdk_pixbuf-2.0 -lcairo -lgio-2.0 -lgobject-2.0 -lglib-2.0\"
-""", depends-on = ["mac_autogen"], inputs = ["configure"], outputs = ["emacs-build-macos/config.status"], description = "Configure Emacs for macOS with NS support" }
+""", depends-on = ["autogen"], inputs = ["configure"], outputs = ["emacs-build-macos/config.status"], description = "Configure Emacs with NS support" }
 
-# Build Emacs for macOS
-mac_build = { cwd = "emacs-build-macos", cmd = "make -j$(sysctl -n hw.ncpu)", depends-on = ["mac_configure"], description = "Build Emacs for macOS" }
+# Build Emacs
+build = { cwd = "emacs-build-macos", cmd = "make -j$(sysctl -n hw.ncpu)", depends-on = ["configure"], description = "Build Emacs" }
 
-# Update loaddefs.el for macOS
-mac_autoloads = { cwd = "emacs-build-macos/lisp", cmd = "make autoloads", depends-on = ["mac_configure"], description = "Update loaddefs.el for macOS" }
+# Update loaddefs.el
+autoloads = { cwd = "emacs-build-macos/lisp", cmd = "make autoloads", depends-on = ["configure"], description = "Update loaddefs.el" }
 
-# Bootstrap Emacs for macOS
-mac_bootstrap = { cwd = "emacs-build-macos", cmd = "make bootstrap -j$(sysctl -n hw.ncpu)", depends-on = ["mac_configure"], description = "Bootstrap Emacs for macOS" }
+# Bootstrap Emacs
+bootstrap = { cwd = "emacs-build-macos", cmd = "make bootstrap -j$(sysctl -n hw.ncpu)", depends-on = ["configure"], description = "Bootstrap Emacs" }
 
-# Install macOS Emacs.app
-mac_install = { cwd = "emacs-build-macos", cmd = "make install && codesign --force --deep --sign - ./nextstep/Emacs.app", depends-on = ["mac_build"], outputs = ["emacs-build-macos/nextstep/Emacs.app/Contents/MacOS/Emacs"], description = "Install macOS Emacs.app and sign" }
+# Install Emacs.app
+install = { cwd = "emacs-build-macos", cmd = "make install && codesign --force --deep --sign - ./nextstep/Emacs.app", depends-on = ["build"], outputs = ["emacs-build-macos/nextstep/Emacs.app/Contents/MacOS/Emacs"], description = "Install Emacs.app and sign" }
 
-# Run macOS Emacs
-mac_run = { cwd = "emacs-build-macos", cmd = "./nextstep/Emacs.app/Contents/MacOS/Emacs", depends-on = ["mac_install"], description = "Run macOS Emacs.app" }
+# Run Emacs
+run = { cwd = "emacs-build-macos", cmd = "./nextstep/Emacs.app/Contents/MacOS/Emacs", depends-on = ["install"], description = "Run Emacs.app" }
 
 # Run the test suite
-mac_check = { cwd = "emacs-build-macos", cmd = "make check", depends-on = ["mac_build"], description = "Run Emacs test suite" }
+check = { cwd = "emacs-build-macos", cmd = "make check", depends-on = ["build"], description = "Run Emacs test suite" }
 
 
 [environments]
