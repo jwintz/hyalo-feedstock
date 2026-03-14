@@ -2,17 +2,19 @@
 
 This repository provides a reproducible build system for GNU Emacs targeting macOS (as Emacs.app) using the [Pixi](https://pixi.sh) package manager.
 
+**[Documentation](https://jwintz.github.io/hyalo-feedstock)**
+
 ## Quick Start
 
 ### Prerequisites
 
-- macOS 14+ with Apple Silicon (arm64)
+- macOS 26+ with Apple Silicon (arm64)
 - [Pixi](https://pixi.sh) installed (`curl -fsSL https://pixi.sh/install.sh | bash`)
 
 ### Setup
 
 ```bash
-git clone --recurse-submodules <repository-url>
+git clone --recurse-submodules https://github.com/jwintz/hyalo-feedstock
 cd hyalo-feedstock
 pixi install
 ```
