@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hyalo Feedstock — stacked layers glyph: build pipeline abstraction -->
+<svg width="800" height="800" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Top layer -->
+  <rect fill="#929292" x="165" y="165" width="470" height="94"/>
+  <!-- Middle layer -->
+  <rect fill="#929292" x="165" y="353" width="470" height="94"/>
+  <!-- Bottom layer -->
+  <rect fill="#929292" x="165" y="541" width="470" height="94"/>
+  <!-- Left connector -->
+  <rect fill="#929292" x="165" y="259" width="94" height="94"/>
+  <!-- Right connector -->
+  <rect fill="#929292" x="541" y="447" width="94" height="94"/>
+</svg>
