@@ -44,3 +44,6 @@ emacs-build-*/
 build-mac/
 mac-deps/
 build-error.log
+
+# Rattler
+output

@@ -1,0 +1,80 @@
+context:
+  version: "30.1"
+
+package:
+  name: emacs
+  version: ${{ version }}
+
+source:
+  - path: ../emacs/
+
+build:
+  number: 0
+  script: build.sh
+  skip:
+    - win
+    - linux
+  dynamic_linking:
+    binary_relocation: false
+    rpath_allowlist:
+      - "@loader_path/**"
+
+requirements:
+  build:
+    - autoconf
+    - automake
+    - make
+    - pkg-config
+    - texinfo
+  host:
+    # Required libraries
+    - gnutls
+    - libxml2
+    - ncurses
+    - zlib
+    # Image libraries
+    - giflib
+    - libjpeg-turbo
+    - libpng
+    - libtiff
+    - lcms2
+    # SVG support (requires cairo and glib stack)
+    - librsvg
+    - cairo
+    - glib
+    - gdk-pixbuf
+    - pango
+    - expat
+    # JSON support
+    - jansson
+    # Tree-sitter support
+    - libtree-sitter >=0.20.10
+    # Native compilation (from jwintz channel)
+    - libgccjit >=15.2.0
+  run:
+    - gnutls
+    - libxml2
+    - ncurses
+    - zlib
+    - giflib
+    - libjpeg-turbo
+    - libpng
+    - libtiff
+    - lcms2
+    - librsvg
+    - cairo
+    - glib
+    - gdk-pixbuf
+    - pango
+    - jansson
+    - libtree-sitter >=0.20.10
+    - libgccjit >=15.2.0
+
+about:
+  homepage: https://www.gnu.org/software/emacs/
+  license: GPL-3.0-or-later
+  summary: GNU Emacs — an extensible, customizable text editor (macOS NS build with patches)
+
+extra:
+  recipe-maintainers:
+    - jwintz

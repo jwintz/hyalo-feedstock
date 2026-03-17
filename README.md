@@ -79,6 +79,45 @@ The `emacs/` directory is never modified. All work happens in `emacs-build-macos
 | `clean` | Clean build artifacts |
 | `distclean` | Run `make distclean` inside the build directory |
 
+## Channel
+
+The package is available on the following channel:
+[https://prefix.dev/channels/jwintz](https://prefix.dev/channels/jwintz)
+
+## Installation
+
+```bash
+pixi add -c https://prefix.dev/channels/jwintz -c conda-forge emacs
+```
+
+## Rattler Build
+
+To build the conda package locally:
+
+```bash
+rattler-build build --recipe recipe/recipe.yaml -c https://repo.prefix.dev/jwintz -c conda-forge
+```
+
+### Upload
+
+Upload the built package to the [prefix.dev](https://prefix.dev) channel:
+
+```bash
+rattler-build upload prefix -c jwintz output/osx-arm64/emacs-*.conda
+```
+
+This requires a prefix.dev API token. Set it via:
+
+```bash
+export PREFIX_DEV_API_KEY="your-token-here"
+```
+
+Or pass it directly:
+
+```bash
+rattler-build upload prefix -c jwintz --api-key="your-token" output/osx-arm64/emacs-*.conda
+```
+
 ## License
 
 This build system is provided under the same license as GNU Emacs (GPLv3+).
