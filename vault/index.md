@@ -10,7 +10,7 @@ title: Hyalo Feedstock
 description: A reproducible build system for GNU Emacs targeting macOS. Pristine source, custom patches, native compilation, and a codesigned Emacs.app — all driven by Pixi tasks.
 links:
   - label: Get Started
-    to: /guide/quickstart
+    to: /home
     icon: i-lucide-arrow-right
     color: neutral
     size: xl
