@@ -34,8 +34,11 @@ gdk-pixbuf = "*"
 pango = "*"
 expat = "*"
 
-# JSON support
-jansson = "*"
+# WebP image support
+libwebp = "*"
+
+# SQLite support
+sqlite = "*"
 
 # Tree-sitter support (incremental parsing for syntax highlighting, indentation)
 libtree-sitter = ">=0.20.10"
@@ -78,7 +81,6 @@ configure = { cwd = "emacs-build-macos", cmd = """
 ./configure \
   --with-ns \
   --with-gnutls \
-  --with-json \
   --with-xml2 \
   --with-rsvg \
   --with-modules \

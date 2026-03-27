@@ -19,7 +19,6 @@ cp "${RECIPE_DIR}/../icons/Emacs.icns" nextstep/Cocoa/Emacs.base/Contents/Resour
   --prefix="${PREFIX}" \
   --with-ns \
   --with-gnutls \
-  --with-json \
   --with-xml2 \
   --with-rsvg \
   --with-modules \

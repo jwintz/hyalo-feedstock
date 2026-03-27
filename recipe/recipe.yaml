@@ -1,5 +1,5 @@
 context:
-  version: "30.1"
+  version: "31.0.50"
 
 package:
   name: emacs
@@ -45,8 +45,10 @@ requirements:
     - gdk-pixbuf
     - pango
     - expat
-    # JSON support
-    - jansson
+    # WebP image support
+    - libwebp
+    # SQLite support
+    - sqlite
     # Tree-sitter support
     - libtree-sitter >=0.20.10
     # Native compilation (from jwintz channel)
@@ -66,7 +68,8 @@ requirements:
     - glib
     - gdk-pixbuf
     - pango
-    - jansson
+    - libwebp
+    - sqlite
     - libtree-sitter >=0.20.10
     - libgccjit >=15.2.0
 
